@@ -1,0 +1,7 @@
+torch
+torchvision
+matplotlib
+opencv-contrib-python
+imutils
+scikit-learn
+tdqm

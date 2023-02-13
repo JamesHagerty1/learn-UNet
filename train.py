@@ -68,8 +68,12 @@ def main():
         totalTrainLoss = 0
         totalTestLoss = 0
         for (i, (x, y)) in enumerate(trainLoader):
+            # x (64, 3, 128, 128)
+            # y (64, 1, 128, 128)
             (x, y) = (x.to(DEVICE), y.to(DEVICE))
+            # pred (64, 1, 128, 128)
             pred = unet(x)
+            return
             loss = lossFunc(pred, y)
             opt.zero_grad()
             loss.backward()

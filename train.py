@@ -64,23 +64,17 @@ def main():
     startTime = time.time()
     for e in tqdm(range(NUM_EPOCHS)):
         unet.train()
-
         # initialize the total training and validation loss
         totalTrainLoss = 0
         totalTestLoss = 0
-        
         for (i, (x, y)) in enumerate(trainLoader):
             (x, y) = (x.to(DEVICE), y.to(DEVICE))
-           
             pred = unet(x)
             loss = lossFunc(pred, y)
-        
             opt.zero_grad()
             loss.backward()
             opt.step()
-
             totalTrainLoss += loss
-    
         with torch.no_grad():
             unet.eval()
             # loop over the validation set
@@ -89,11 +83,9 @@ def main():
                 # make the predictions and calculate the validation loss
                 pred = unet(x)
                 totalTestLoss += lossFunc(pred, y)
-
         # calculate the average training and validation loss
         avgTrainLoss = totalTrainLoss / trainSteps
         avgTestLoss = totalTestLoss / testSteps
-
         # update our training history
         H["train_loss"].append(avgTrainLoss.cpu().detach().numpy())
         H["test_loss"].append(avgTestLoss.cpu().detach().numpy())
@@ -101,7 +93,6 @@ def main():
         print("[INFO] EPOCH: {}/{}".format(e + 1, NUM_EPOCHS))
         print("Train loss: {:.6f}, Test loss: {:.4f}".format(
             avgTrainLoss, avgTestLoss))
-    
     endTime = time.time()
     print("[INFO] total time taken to train the model: {:.2f}s".format(
         endTime - startTime))

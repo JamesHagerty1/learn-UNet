@@ -1,10 +1,12 @@
 from config import PRED_PATH, MASK_DATASET_PATH, INPUT_IMAGE_HEIGHT, DEVICE, \
     THRESHOLD, TEST_PATHS, MODEL_PATH
+from model import UNet
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import cv2
 import os
+
 
 
 # TBD, PLOT MULTIPLE ON SAME PLOT -- BUT EVERYTHING WORKS FINE
@@ -60,10 +62,13 @@ def make_predictions(model, imagePath):
 def main():
     imagePaths = open(TEST_PATHS).read().strip().split("\n")
     imagePaths = np.random.choice(imagePaths, size=10)
-    unet = torch.load(MODEL_PATH).to(DEVICE)
+    # unet = torch.load(MODEL_PATH).to(DEVICE)
+    unet = UNet().to(DEVICE)
     for path in imagePaths:
         # make predictions and visualize the results
         make_predictions(unet, path)
+	
+        break
 
 if __name__ == "__main__":
 	main()

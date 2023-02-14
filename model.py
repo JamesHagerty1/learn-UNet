@@ -98,12 +98,14 @@ class Decoder(Module):
 
 
 class Block(Module):
-	def __init__(self, inChannels, outChannels):
+	def __init__(self, inChannels, outChannels, kernel_size=3):
 		super().__init__()
 		# Conv2d(in_channels, out_channels, kernel_size, ...)
-		self.conv1 = Conv2d(inChannels, outChannels, 3)
+		# conv1 weight (outChannels, inChannels, kernel_size, kernel_size)
+		self.conv1 = Conv2d(inChannels, outChannels, kernel_size)
 		self.relu = ReLU()
-		self.conv2 = Conv2d(outChannels, outChannels, 3)
+		# conv1 weight (outChannels, outChannels, kernel_size, kernel_size)
+		self.conv2 = Conv2d(outChannels, outChannels, kernel_size)
 		self.channels = (inChannels, outChannels)
 		
 	# ORIG width and height here, referenced in other dim comments

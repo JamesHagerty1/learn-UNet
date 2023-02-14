@@ -24,9 +24,11 @@ class UNet(Module):
 		self.retainDim = retainDim
 		self.outSize = outSize
 		
-	# x (batch_size, 3, width, height)
+	# x (batch_size, channels, height, width)
 	def forward(self, x):
-		# encFeatures[i] (batch_size, ...)
+		# [] image encodings (scaled up channels, convolved heights and widths)
+		# encFeatures[i] (batch_size, channels, height, width)
+		# NO NOT QUITE, ACCOUNT FOR POOL
 		encFeatures = self.encoder(x)
 
 
@@ -48,15 +50,15 @@ class UNet(Module):
 class Encoder(Module):
 	def __init__(self, channels=(3, 16, 32, 64)):
 		super().__init__()
+		# Block(in_channels, out_channels)
 		# Default [Block(3, 16), Block(16, 32), Block(32, 64)]
 		self.encBlocks = ModuleList(
 			[Block(channels[i], channels[i + 1])
                 for i in range(len(channels) - 1)])
 		self.pool = MaxPool2d(2)
 		
-	# x (batch_size, 3, width, height)
+	# x (batch_size, channels, width, height)
 	def forward(self, x):
-		print(" * Encoder f()")
 		blockOutputs = []
 		for block in self.encBlocks:
 			x = block(x)
@@ -84,7 +86,6 @@ class Decoder(Module):
 		return encFeatures
 
 	def forward(self, x, encFeatures):
-		print(" * Decoder f()")
 		for i in range(len(self.channels) - 1):
 			x = self.upconvs[i](x)
 			# crop the current features from the encoder blocks,
@@ -100,15 +101,14 @@ class Decoder(Module):
 class Block(Module):
 	def __init__(self, inChannels, outChannels, kernel_size=3):
 		super().__init__()
-		# Conv2d(in_channels, out_channels, kernel_size, ...)
 		# conv1 weight (outChannels, inChannels, kernel_size, kernel_size)
+		# conv1 bias (outChannels)
 		self.conv1 = Conv2d(inChannels, outChannels, kernel_size)
 		self.relu = ReLU()
-		# conv1 weight (outChannels, outChannels, kernel_size, kernel_size)
+		# conv2 weight (outChannels, outChannels, kernel_size, kernel_size)
+		# conv2 bias (outChannels)
 		self.conv2 = Conv2d(outChannels, outChannels, kernel_size)
-		self.channels = (inChannels, outChannels)
 		
-	# ORIG width and height here, referenced in other dim comments
 	# x (batch_size, inChannels, width, height)
 	def forward(self, x):
 		# x (batch_size, outChannels, width-=(kernel_size+1), height-=(kernel_size+1))

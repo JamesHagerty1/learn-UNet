@@ -26,9 +26,7 @@ class UNet(Module):
 		
 	# x (batch_size, channels, height, width)
 	def forward(self, x):
-		# [] image encodings (scaled up channels, convolved heights and widths)
 		# encFeatures[i] (batch_size, channels, height, width)
-		# NO NOT QUITE, ACCOUNT FOR POOL
 		encFeatures = self.encoder(x)
 
 

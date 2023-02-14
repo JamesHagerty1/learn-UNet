@@ -26,21 +26,19 @@ class UNet(Module):
 		
 	# x (batch_size, channels, height, width)
 	def forward(self, x):
-		# encFeatures[i] (batch_size, channels, height, width) 
+		# encFeatures[i] (batch_size, channels, height', width') 
 		# ascending values for channels
 		encFeatures = self.encoder(x)
 		# x from last Block of encoder pipeline, max channels val for dec or enc
 		x = encFeatures[-1]
-		decFeatures = self.decoder(x, encFeatures[::-1][1:])
-		
-
-		# regression head gives segmentation mask
-		map = self.head(decFeatures)
-		# check to see if we are retaining the original output
-		# dimensions and if so, then resize the output to match them
+		# x (batch_size, decChannels[-1], height', width')
+		x = self.decoder(x, encFeatures[::-1][1:])
+		# Start segmentation map (mask) with Conv2d where channels are reduced 
+		# to nbClasses==1 and kernel_size is 1 (per pixel convolutions)
+		map = self.head(x)
 		if self.retainDim:
+			# Set map height and width to desired dims
 			map = F.interpolate(map, self.outSize)
-		# return the segmentation map
 		return map
 
 
@@ -82,9 +80,7 @@ class Decoder(Module):
 			[Block(channels[i], channels[i + 1])
 			 	for i in range(len(channels) - 1)])
 
-	# makes skip layer concatenations possible when there are slight 
-	# dim mismatches; matches stored encoder conv+pool result dims to dims of 
-	# upconvs to x 
+	# match dims for upconv'd x and its U-mirrored encFeatures
 	def crop(self, encFeatures, x):
 		(_, _, H, W) = x.shape
 		encFeatures = CenterCrop([H, W])(encFeatures)
@@ -92,17 +88,17 @@ class Decoder(Module):
 
 	# x (batch_size, channels, height, width)
 	def forward(self, x, encFeatures):
-		# upconv x (the final encoder conv+pool result) and concat its upconvs
-		# to the other encoder conv+pool results that skip-layer; respecting
-		# the U-shaped architecture (these concats increase channels),
-		# THEN pass x through conv+pool block
+		# upconv x and concat it to U-mirrored encFeature, then Block conv x'
 		for i in range(len(self.channels) - 1):
-			# upconvs seem to undo BOTH encoder channel expansion and image
-			# height and width shrinking
-			# x (batch_size, channels', height', width')
+			# channels decreases to ConvTranspose2d out_channels, height and 
+			# width increase sensitive to upconv kernel 
 			x = self.upconvs[i](x)
 			encFeat = self.crop(encFeatures[i], x)
+			# skip layer concat
+			# channels doubles due to concat
 			x = torch.cat([x, encFeat], dim=1)
+			# channels decreases to Block out_channels, minor height and width
+			# decrease from Block convolutions
 			x = self.dec_blocks[i](x)
 		return x
 
@@ -120,10 +116,11 @@ class Block(Module):
 		
 	# x (batch_size, inChannels, width, height)
 	def forward(self, x):
-		# x (batch_size, outChannels, width-=(kernel_size+1), height-=(kernel_size+1))
+		# Kernel/convolving reduces width and height slightly
+		# x (batch_size, outChannels, width', height')
 		x = self.conv1(x)
 		x = self.relu(x)
-		# x (batch_size, outChannels, width-=(kernel_size+1), height-=(kernel_size+1))
+		# x (batch_size, outChannels, width', height')
 		x = self.conv2(x)
 		return x
 	

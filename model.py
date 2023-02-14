@@ -61,8 +61,10 @@ class Encoder(Module):
 	def forward(self, x):
 		blockOutputs = []
 		for block in self.encBlocks:
+			# x (batch_size, channels', width', height')
 			x = block(x)
 			blockOutputs.append(x)
+			# x (batch_size, channels', width'//2, height'//2)
 			x = self.pool(x)
 		return blockOutputs
 
